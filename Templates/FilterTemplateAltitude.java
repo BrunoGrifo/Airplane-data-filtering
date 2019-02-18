@@ -29,9 +29,11 @@
 import java.util.*;
 import java.nio.Buffer;
 import java.nio.ByteBuffer;
+
 public class FilterTemplateAltitude extends FilterFramework
 {
 
+	
 
 	public void run()
     {
@@ -66,7 +68,7 @@ public class FilterTemplateAltitude extends FilterFramework
 				bytescounter++;
 				getByte=8;
 				//System.out.println("mmmmmmwmwmwmwmwmwmwmwmwmwmwmwwmwmwm:    "+bytescounter);
-				if(bytescounter==28){
+				if(bytescounter==29){
 					
 					measurement = 0;
 
@@ -89,25 +91,11 @@ public class FilterTemplateAltitude extends FilterFramework
 															// Increment the byte count
 
 					} // if
-					// System.out.println("--------------------------------"+measurement);
-					// result = Double.longBitsToDouble(measurement) * metersConvMultiplier;
-					// System.out.println("--------------------------------"+Double.longBitsToDouble(measurement));
-					// System.out.println("--------------------------------"+metersConvMultiplier);
-					// System.out.println("--------------------------------"+result);
-					// result = result / metersConvDivider;
-					// System.out.println("--------------------------------"+result+"\n");
-					byte [] bytes = ByteBuffer.allocate(8).putLong(measurement).array();
-					/*long data = Double.doubleToRawLongBits(result);
-					 byte[] bytes = new byte[]{
-					 (byte) ((data >> 56) & 0xff),
-					 (byte) ((data >> 48) & 0xff),
-					 (byte) ((data >> 40) & 0xff),
-					 (byte) ((data >> 32) & 0xff),
-					 (byte) ((data >> 24) & 0xff),
-					 (byte) ((data >> 16) & 0xff),
-					 (byte) ((data >> 8) & 0xff),
-					 (byte) ((data >> 0) & 0xff),
-					 };*/
+
+					result = Double.longBitsToDouble(measurement) * metersConvMultiplier;
+					result = result / metersConvDivider;
+					byte [] bytes = ByteBuffer.allocate(8).putDouble(result).array();
+					
 					for (i=0; i<8; i++ )
 					{
 						WriteFilterOutputPort(bytes[i]);

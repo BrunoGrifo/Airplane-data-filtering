@@ -29,8 +29,15 @@
 import java.util.*;
 import java.nio.Buffer;
 import java.nio.ByteBuffer;
-public class FilterTemplateTemperature extends FilterFramework
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+
+public class FilterTemplateDecimalPlaces extends FilterFramework
 {
+
+	public static double roundDown5(double d) {
+	    return ((long)(d * 1e5)) / 1e5; //Long typecast will remove the decimals
+	}
 	public void run()
     {
     	int bytesread = 0;					// Number of bytes read from the input file.
@@ -41,9 +48,7 @@ public class FilterTemplateTemperature extends FilterFramework
 		int i;
 		long getByte;
 		double result=0;
-		double tempConvMinus = 32;
-		double tempConvMultiplier = 5;
-		double tempConvDivider = 9;
+		
 
 		while (true)
 		{
@@ -65,7 +70,7 @@ public class FilterTemplateTemperature extends FilterFramework
 				bytescounter++;
 				getByte=8;
 				//System.out.println("mmmmmmwmwmwmwmwmwmwmwmwmwmwmwwmwmwm:    "+bytescounter);
-				if(bytescounter==53){
+				if(bytescounter==29 || bytescounter==53){
 					
 					measurement = 0;
 
@@ -89,10 +94,9 @@ public class FilterTemplateTemperature extends FilterFramework
 
 					} // if
 
-					result = Double.longBitsToDouble(measurement) - tempConvMinus;
-					result = result * tempConvMultiplier;
-					result = result / tempConvDivider;
-					byte [] bytes = ByteBuffer.allocate(8).putDouble(result).array();
+					result = Double.longBitsToDouble(measurement);
+					
+					byte [] bytes = ByteBuffer.allocate(8).putDouble(roundDown5(result)).array();
 					
 					for (i=0; i<8; i++ )
 					{

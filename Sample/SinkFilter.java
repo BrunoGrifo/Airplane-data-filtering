@@ -115,7 +115,7 @@ public class SinkFilter extends FilterFramework
 					bytesread++;									// Increment the byte count
 
 				} // if
-				System.out.print(id + " --> " + measurement);
+				//System.out.print(id + " --> " + measurement);
 
 				/****************************************************************************
 				// Here we look for an ID of 0 which indicates this is a time measurement.
@@ -128,7 +128,7 @@ public class SinkFilter extends FilterFramework
 				// illustrated below.
 				****************************************************************************/
 
-				/*if ( id == 0 )
+				if ( id == 0 )
 				{
 					TimeStamp.setTimeInMillis(measurement);
 					System.out.print(" Time = " + TimeStampFormat.format(TimeStamp.getTime())  );
@@ -165,7 +165,7 @@ public class SinkFilter extends FilterFramework
 					System.out.print(" Pitch = " + id + " --> " + Double.longBitsToDouble(measurement) );
 					
 
-				}*/
+				}
 				/****************************************************************************
 				// Here we pick up a measurement (ID = 4 in this case), but you can pick up
 				// any measurement you want to. All measurements in the stream are

@@ -28,8 +28,30 @@
 ******************************************************************************************************************/
 import java.util.*;						// This class is used to interpret time words
 import java.text.SimpleDateFormat;
-public class SinkFilterTemplate extends FilterFramework
-{
+import java.io.DataOutputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.sql.Timestamp;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+
+
+public class SinkFilterTemplate extends FilterFramework{
+	static final int timeid=0;
+	static final int tid=4;
+	static final int aid=2;
+
+	public void record(DataOutputStream f,long time ,long t, long a) throws IOException{
+		f.writeInt(timeid);
+		f.writeLong(time);
+		f.writeInt(tid);
+		f.writeLong(t);
+		f.writeInt(aid);
+		f.writeLong(a);
+	}
+
+
 	public void run()
     {
 		/************************************************************************************
@@ -40,7 +62,7 @@ public class SinkFilterTemplate extends FilterFramework
 
 
 		Calendar TimeStamp = Calendar.getInstance();
-		SimpleDateFormat TimeStampFormat = new SimpleDateFormat("yyyy MM dd::hh:mm:ss:SSS");
+		SimpleDateFormat TimeStampFormat = new SimpleDateFormat("yyyy:dd:hh:mm:ss");
 
 		int MeasurementLength = 8;		// This is the length of all measurements (including time) in bytes
 		int IdLength = 4;				// This is the length of IDs in the byte stream
@@ -52,150 +74,183 @@ public class SinkFilterTemplate extends FilterFramework
 		int id;							// This is the measurement id
 		int i;							// This is a loop counter
 
+		String fileName = "OutputA.dat";
+		DataOutputStream file = null;
+		double v,a,p,t;
+		Random x = new Random(System.currentTimeMillis());
+
+		long out1=0;
+		long out2=0;
+		long out3=0;
+
+
+
 		/*************************************************************
 		*	First we announce to the world that we are alive...
 		**************************************************************/
 
-		System.out.print( "\n" + this.getName() + "::Sink Reading ");
+		System.out.print( "\n" + this.getName() + "::Sink Reading \n");
+		System.out.print("Time:                 Temperature:          Altitude:\n");
+		System.out.print("-----------------------------------------------------\n");
+		try{
+			file = new DataOutputStream(new FileOutputStream(fileName));
 
-		while (true)
-		{
-			try
+			while (true)
 			{
-				/***************************************************************************
-				// We know that the first data coming to this filter is going to be an ID and
-				// that it is IdLength long. So we first decommutate the ID bytes.
-				****************************************************************************/
-
-				id = 0;
-
-				for (i=0; i<IdLength; i++ )
+				try
 				{
+					/***************************************************************************
+					// We know that the first data coming to this filter is going to be an ID and
+					// that it is IdLength long. So we first decommutate the ID bytes.
+					****************************************************************************/
 
-					databyte = ReadFilterInputPort();	// This is where we read the byte from the stream...
-					id = id | (databyte & 0xFF);
-					//id = databyte;		// We append the byte on to ID...
+					id = 0;
 
-					if (i != IdLength-1)				// If this is not the last byte, then slide the
-					{									// previously appended byte to the left by one byte
-						id = id << 8;					// to make room for the next byte we append to the ID
+					for (i=0; i<IdLength; i++ )
+					{
 
-					} // if
+						databyte = ReadFilterInputPort();	// This is where we read the byte from the stream...
+						id = id | (databyte & 0xFF);
+						//id = databyte;		// We append the byte on to ID...
 
-					bytesread++;						// Increment the byte count
+						if (i != IdLength-1)				// If this is not the last byte, then slide the
+						{									// previously appended byte to the left by one byte
+							id = id << 8;					// to make room for the next byte we append to the ID
 
-				} // for
+						} // if
 
-				
+						bytesread++;						// Increment the byte count
 
-				/****************************************************************************
-				// Here we read measurements. All measurement data is read as a stream of bytes
-				// and stored as a long value. This permits us to do bitwise manipulation that
-				// is neccesary to convert the byte stream into data words. Note that bitwise
-				// manipulation is not permitted on any kind of floating point types in Java.
-				// If the id = 0 then this is a time value and is therefore a long value - no
-				// problem. However, if the id is something other than 0, then the bits in the
-				// long value is really of type double and we need to convert the value using
-				// Double.longBitsToDouble(long val) to do the conversion which is illustrated.
-				// below.
-				*****************************************************************************/
+					} // for
 
-				measurement = 0;
-				
-
-				for (i=0; i<MeasurementLength; i++ )
-				{
-					databyte = ReadFilterInputPort();
-					measurement = measurement | (databyte & 0xFF);	// We append the byte on to measurement...
-					//System.out.print("CHECK: "+measurement);
-					if (i != MeasurementLength-1)					// If this is not the last byte, then slide the
-					{												// previously appended byte to the left by one byte
-						measurement = measurement << 8;				// to make room for the next byte we append to the
-																	// measurement
-					} // if
-					//System.out.print("\n");
-					bytesread++;									// Increment the byte count
-
-				} // if
-
-				/****************************************************************************
-				// Here we look for an ID of 0 which indicates this is a time measurement.
-				// Every frame begins with an ID of 0, followed by a time stamp which correlates
-				// to the time that each proceeding measurement was recorded. Time is stored
-				// in milliseconds since Epoch. This allows us to use Java's calendar class to
-				// retrieve time and also use text format classes to format the output into
-				// a form humans can read. So this provides great flexibility in terms of
-				// dealing with time arithmetically or for string display purposes. This is
-				// illustrated below.
-				****************************************************************************/
-
-				if ( id == 0 )
-				{
-					TimeStamp.setTimeInMillis(measurement);
-					System.out.print(" Time = " + TimeStampFormat.format(TimeStamp.getTime())  );
-
-				} // if
-				if ( id == 1 )
-				{
-					//System.out.print(" Speed = " + id + " --> " + Double.longBitsToDouble(measurement));
-
-
-				}
-				if ( id == 2 )
-				{
-					System.out.print(" Altitude = " + id + " --> " + Double.longBitsToDouble(measurement) );
-
-				}
-				if ( id == 3 )
-				{
-					//System.out.print(" Pressure = " + id + " --> " + Double.longBitsToDouble(measurement) );
-
-				}
-				if ( id == 4 )
-				{
-					//System.out.print(" Temperature = " + id + " --> " + Double.longBitsToDouble(measurement) );
-					System.out.print( "\n" );
-
-				} // if
-
-				if ( id == 5 )
-				{
-
-					System.out.print(" Pitch = " + id + " --> " + Double.longBitsToDouble(measurement) );
 					
 
-				}
-				/****************************************************************************
-				// Here we pick up a measurement (ID = 4 in this case), but you can pick up
-				// any measurement you want to. All measurements in the stream are
-				// decommutated by this class. Note that all data measurements are double types
-				// This illustrates how to convert the bits read from the stream into a double
-				// type. Its pretty simple using Double.longBitsToDouble(long value). So here
-				// we print the time stamp and the data associated with the ID we are interested
-				// in.
-				****************************************************************************/
-				//System.out.print( "\n" );
-				
+					/****************************************************************************
+					// Here we read measurements. All measurement data is read as a stream of bytes
+					// and stored as a long value. This permits us to do bitwise manipulation that
+					// is neccesary to convert the byte stream into data words. Note that bitwise
+					// manipulation is not permitted on any kind of floating point types in Java.
+					// If the id = 0 then this is a time value and is therefore a long value - no
+					// problem. However, if the id is something other than 0, then the bits in the
+					// long value is really of type double and we need to convert the value using
+					// Double.longBitsToDouble(long val) to do the conversion which is illustrated.
+					// below.
+					*****************************************************************************/
 
-				
+					measurement = 0;
 
-			} // try
 
-			/*******************************************************************************
-			*	The EndOfStreamExeception below is thrown when you reach end of the input
-			*	stream (duh). At this point, the filter ports are closed and a message is
-			*	written letting the user know what is going on.
-			********************************************************************************/
+					for (i=0; i<MeasurementLength; i++ )
+					{
+						databyte = ReadFilterInputPort();
+						measurement = measurement | (databyte & 0xFF);	// We append the byte on to measurement...
+						//System.out.print("CHECK: "+measurement);
+						if (i != MeasurementLength-1)					// If this is not the last byte, then slide the
+						{												// previously appended byte to the left by one byte
+							measurement = measurement << 8;				// to make room for the next byte we append to the
+																		// measurement
+						} // if
+						//System.out.print("\n");
+						bytesread++;									// Increment the byte count
 
-			catch (EndOfStreamException e)
-			{
-				ClosePorts();
-				System.out.print( "\n" + this.getName() + "::Sink Exiting; bytes read: " + bytesread );
-				break;
+					} // if
 
-			} // catch
+					/****************************************************************************
+					// Here we look for an ID of 0 which indicates this is a time measurement.
+					// Every frame begins with an ID of 0, followed by a time stamp which correlates
+					// to the time that each proceeding measurement was recorded. Time is stored
+					// in milliseconds since Epoch. This allows us to use Java's calendar class to
+					// retrieve time and also use text format classes to format the output into
+					// a form humans can read. So this provides great flexibility in terms of
+					// dealing with time arithmetically or for string display purposes. This is
+					// illustrated below.
+					****************************************************************************/
 
-		} // while
+					if ( id == 0 )
+					{
+						TimeStamp.setTimeInMillis(measurement);
+						System.out.print(TimeStampFormat.format(TimeStamp.getTime())+"      ");
+
+						out1=measurement;
+
+					} // if
+					if ( id == 1 )
+					{
+						//System.out.print(" Speed = " + id + " --> " + Double.longBitsToDouble(measurement));
+
+
+					}
+					if ( id == 2 )
+					{
+						System.out.print(Double.longBitsToDouble(measurement)+"          " );
+						out3=measurement;
+
+					}
+					if ( id == 3 )
+					{
+						//System.out.print(" Pressure = " + id + " --> " + Double.longBitsToDouble(measurement) );
+
+					}
+					if ( id == 4 )
+					{
+						System.out.print(Double.longBitsToDouble(measurement) );
+						out2 = measurement;
+						record(file, out1, out2, out3);
+						System.out.print( "\n" );
+
+					} // if
+
+					if ( id == 5 )
+					{
+
+						System.out.print(" Pitch = " + id + " --> " + Double.longBitsToDouble(measurement) );
+						
+
+					}
+
+					
+					/****************************************************************************
+					// Here we pick up a measurement (ID = 4 in this case), but you can pick up
+					// any measurement you want to. All measurements in the stream are
+					// decommutated by this class. Note that all data measurements are double types
+					// This illustrates how to convert the bits read from the stream into a double
+					// type. Its pretty simple using Double.longBitsToDouble(long value). So here
+					// we print the time stamp and the data associated with the ID we are interested
+					// in.
+					****************************************************************************/
+					//System.out.print( "\n" );
+					
+
+					
+
+				} // try
+
+				/*******************************************************************************
+				*	The EndOfStreamExeception below is thrown when you reach end of the input
+				*	stream (duh). At this point, the filter ports are closed and a message is
+				*	written letting the user know what is going on.
+				********************************************************************************/
+
+				catch (EndOfStreamException e)
+				{
+					ClosePorts();
+					System.out.print( "\n" + this.getName() + "::Sink Exiting; bytes read: " + bytesread );
+					break;
+
+				} // catch
+
+			} // while
+
+
+
+
+			file.close();
+
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 
    } // run
 
